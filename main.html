@@ -1,0 +1,1854 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D&D Adventure Clicker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Trebuchet MS', sans-serif;
+            background: #0a0606;
+            color: #fff;
+            overflow: hidden;
+            overflow: auto;
+        }
+
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            background: radial-gradient(circle, rgba(255,215,0,0.8) 0%, rgba(255,215,0,0) 70%);
+            border-radius: 50%;
+            animation: float 20s infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { 
+                transform: translateY(0) translateX(0);
+                opacity: 0;
+            }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { 
+                transform: translateY(-100vh) translateX(50px);
+                opacity: 0;
+            }
+        }
+
+        .game-wrapper {
+            display: flex;
+            min-height: 100vh;
+            position: relative;
+            z-index: 2;
+        }
+
+        .left-panel {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(15,10,10,0.95) 0%, rgba(26,16,16,0.95) 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .background-pattern {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.05;
+            background-image: 
+                repeating-linear-gradient(0deg, transparent, transparent 2px, #ffd700 2px, #ffd700 4px),
+                repeating-linear-gradient(90deg, transparent, transparent 2px, #ffd700 2px, #ffd700 4px);
+            background-size: 50px 50px;
+            pointer-events: none;
+        }
+
+        .right-panel {
+            width: 420px;
+            background: linear-gradient(180deg, #1a1410 0%, #0f0a08 100%);
+            border-left: 3px solid #8b6914;
+            overflow-y: auto;
+            box-shadow: -5px 0 30px rgba(0, 0, 0, 0.8);
+            position: relative;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 10;
+        }
+
+        h1 {
+            color: #ffd700;
+            font-size: 3.5em;
+            text-shadow: 
+                3px 3px 6px rgba(0, 0, 0, 0.8),
+                0 0 30px rgba(255, 215, 0, 0.6),
+                0 0 60px rgba(255, 215, 0, 0.4);
+            margin-bottom: 10px;
+            animation: titleGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes titleGlow {
+            0%, 100% { text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.6); }
+            50% { text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8), 0 0 40px rgba(255, 215, 0, 0.8), 0 0 70px rgba(255, 215, 0, 0.5); }
+        }
+
+        .top-buttons {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .settings-btn, .achievements-btn {
+            background: rgba(139, 105, 20, 0.3);
+            border: 2px solid #8b6914;
+            color: #ffd700;
+            font-size: 1.5em;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .settings-btn:hover {
+            background: rgba(139, 105, 20, 0.6);
+            transform: rotate(90deg);
+        }
+
+        .achievements-btn:hover {
+            background: rgba(139, 105, 20, 0.6);
+            transform: scale(1.1);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ff4444;
+            color: white;
+            font-size: 0.7em;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            animation: badgePulse 1s ease-in-out infinite;
+        }
+
+        @keyframes badgePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: linear-gradient(145deg, #2d1810, #1a0f0f);
+            border: 3px solid #ffd700;
+            border-radius: 15px;
+            padding: 40px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 0 50px rgba(255, 215, 0, 0.5);
+            animation: slideUp 0.4s;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            color: #ffd700;
+            font-size: 2em;
+            margin-bottom: 30px;
+            text-align: center;
+            border-bottom: 2px solid #8b6914;
+            padding-bottom: 15px;
+        }
+
+        .modal-section {
+            margin-bottom: 25px;
+        }
+
+        .modal-section h3 {
+            color: #d4af37;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .setting-label {
+            color: #c0c0c0;
+            font-size: 1.1em;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 30px;
+            background: #4a4a4a;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: #32cd32;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+
+        .toggle-switch.active .toggle-slider {
+            transform: translateX(30px);
+        }
+
+        .close-modal {
+            background: linear-gradient(145deg, #8b0000, #dc143c);
+            border: none;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: all 0.3s;
+        }
+
+        .close-modal:hover {
+            background: linear-gradient(145deg, #dc143c, #8b0000);
+            transform: scale(1.05);
+        }
+
+        .achievement-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .achievement-card {
+            background: linear-gradient(145deg, rgba(45, 36, 22, 0.6), rgba(26, 20, 16, 0.6));
+            border: 2px solid #5a4a2a;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .achievement-card.achieved {
+            border-color: #ffd700;
+            background: linear-gradient(145deg, rgba(61, 52, 38, 0.8), rgba(42, 32, 16, 0.8));
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+        }
+
+        .achievement-card.achieved::before {
+            content: '✓';
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #32cd32;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .achievement-card.locked {
+            opacity: 0.5;
+            filter: grayscale(100%);
+        }
+
+        .achievement-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        .achievement-name {
+            color: #ffd700;
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .achievement-desc {
+            color: #a0a0a0;
+            font-size: 0.9em;
+        }
+
+        .achievement-progress {
+            margin-top: 10px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            height: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .achievement-progress-bar {
+            background: linear-gradient(90deg, #32cd32, #90ee90);
+            height: 100%;
+            transition: width 0.5s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+            color: white;
+            font-weight: bold;
+        }
+
+        .file-upload-section {
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px dashed #8b6914;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .file-upload-btn {
+            background: linear-gradient(145deg, #4169e1, #1e90ff);
+            border: none;
+            color: white;
+            padding: 10px 25px;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.3s;
+        }
+
+        .file-upload-btn:hover {
+            background: linear-gradient(145deg, #1e90ff, #4169e1);
+            transform: scale(1.05);
+        }
+
+        .file-list {
+            margin-top: 15px;
+            text-align: left;
+        }
+
+        .file-item {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 8px 12px;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-item-name {
+            color: #90ee90;
+        }
+
+        .file-item-remove {
+            background: #ff4444;
+            border: none;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .xp-display {
+            background: linear-gradient(145deg, rgba(45, 24, 16, 0.9), rgba(26, 15, 15, 0.9));
+            border: 3px solid #ffd700;
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px 0;
+            text-align: center;
+            box-shadow: 
+                0 0 40px rgba(255, 215, 0, 0.4),
+                inset 0 0 20px rgba(0, 0, 0, 0.5);
+            position: relative;
+            z-index: 10;
+        }
+
+        .xp-label {
+            color: #d4af37;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .xp-value {
+            color: #fff;
+            font-size: 4em;
+            font-weight: bold;
+            text-shadow: 
+                2px 2px 4px rgba(0, 0, 0, 0.8),
+                0 0 20px rgba(255, 215, 0, 0.6);
+            margin-bottom: 15px;
+            animation: numberPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes numberPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .xp-per-second {
+            color: #90ee90;
+            font-size: 1.4em;
+            text-shadow: 0 0 10px rgba(144, 238, 144, 0.5);
+        }
+
+        .dice-container {
+            position: relative;
+            margin: 40px 0;
+            z-index: 10;
+        }
+
+        .dice-button {
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            border: 6px solid #8b0000;
+            background: radial-gradient(circle at 30% 30%, #ff4444 0%, #dc143c 50%, #8b0000 100%);
+            color: white;
+            font-size: 10em;
+            cursor: pointer;
+            transition: all 0.15s;
+            box-shadow: 
+                0 20px 50px rgba(220, 20, 60, 0.7),
+                inset 0 -15px 30px rgba(0, 0, 0, 0.4),
+                inset 0 10px 30px rgba(255, 255, 255, 0.2);
+            position: relative;
+            filter: drop-shadow(0 0 30px rgba(220, 20, 60, 0.5));
+        }
+
+        .dice-button::before {
+            content: '';
+            position: absolute;
+            top: -6px;
+            left: -6px;
+            right: -6px;
+            bottom: -6px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+            animation: shine 3s linear infinite;
+        }
+
+        @keyframes shine {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .dice-button:hover {
+            transform: scale(1.1);
+            box-shadow: 
+                0 25px 60px rgba(220, 20, 60, 0.9),
+                inset 0 -15px 30px rgba(0, 0, 0, 0.4),
+                inset 0 10px 30px rgba(255, 255, 255, 0.2);
+        }
+
+        .dice-button:active {
+            transform: scale(0.95);
+            box-shadow: 
+                0 10px 30px rgba(220, 20, 60, 0.7),
+                inset 0 5px 20px rgba(0, 0, 0, 0.6);
+        }
+
+        .dice-rolling {
+            animation: roll 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        @keyframes roll {
+            0% { transform: rotate(0deg) scale(1); }
+            25% { transform: rotate(180deg) scale(1.2); }
+            50% { transform: rotate(360deg) scale(1.3); }
+            75% { transform: rotate(540deg) scale(1.2); }
+            100% { transform: rotate(720deg) scale(1); }
+        }
+
+        .per-click {
+            color: #ffd700;
+            font-size: 1.3em;
+            margin-top: 20px;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .bonus-section {
+            background: linear-gradient(145deg, rgba(75, 0, 130, 0.3), rgba(139, 0, 139, 0.2));
+            border: 3px solid #8b008b;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 30px 20px;
+            text-align: center;
+            box-shadow: 
+                0 0 30px rgba(139, 0, 139, 0.4),
+                inset 0 0 20px rgba(0, 0, 0, 0.3);
+            position: relative;
+            z-index: 10;
+        }
+
+        .bonus-title {
+            color: #da70d6;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 15px rgba(218, 112, 214, 0.6);
+        }
+
+        .dice-result {
+            font-size: 5em;
+            color: #ffd700;
+            margin: 20px 0;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.9);
+        }
+
+        .roll-button {
+            padding: 18px 50px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(145deg, #8b008b, #da70d6);
+            color: white;
+            font-size: 1.3em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 8px 20px rgba(139, 0, 139, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .roll-button:hover:not(:disabled) {
+            background: linear-gradient(145deg, #da70d6, #8b008b);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(139, 0, 139, 0.8);
+        }
+
+        .roll-button:disabled {
+            background: #4a4a4a;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .roll-info {
+            color: #c0c0c0;
+            margin-top: 20px;
+            font-size: 1em;
+            line-height: 1.8;
+        }
+
+        .critical {
+            animation: criticalPulse 0.4s ease-in-out 4;
+        }
+
+        @keyframes criticalPulse {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.3) rotate(5deg); }
+        }
+
+        .store-header {
+            background: linear-gradient(145deg, #2d1810, #1a0f0f);
+            padding: 25px;
+            border-bottom: 3px solid #8b6914;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .store-title {
+            color: #ffd700;
+            font-size: 2em;
+            text-align: center;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+        .total-per-second {
+            text-align: center;
+            color: #90ee90;
+            font-size: 1.2em;
+            text-shadow: 0 0 10px rgba(144, 238, 144, 0.5);
+        }
+
+        .upgrades-list {
+            padding: 15px;
+        }
+
+        .upgrade-item {
+            background: linear-gradient(145deg, rgba(45, 36, 22, 0.6), rgba(26, 20, 16, 0.6));
+            border: 2px solid #5a4a2a;
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            opacity: 0.4;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upgrade-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .upgrade-item:hover::before {
+            left: 100%;
+        }
+
+        .upgrade-item.unlocked {
+            opacity: 1;
+        }
+
+        .upgrade-item.unlocked:hover {
+            border-color: #ffd700;
+            background: linear-gradient(145deg, rgba(61, 52, 38, 0.8), rgba(42, 32, 16, 0.8));
+            transform: translateX(-8px) scale(1.02);
+            box-shadow: 8px 0 25px rgba(255, 215, 0, 0.4);
+        }
+
+        .upgrade-item.affordable {
+            border-color: #32cd32;
+            background: linear-gradient(145deg, rgba(45, 52, 34, 0.8), rgba(26, 32, 16, 0.8));
+            box-shadow: 0 0 15px rgba(50, 205, 50, 0.3);
+        }
+
+        .upgrade-item.affordable:hover {
+            border-color: #90ee90;
+            box-shadow: 8px 0 30px rgba(50, 205, 50, 0.5);
+        }
+
+        .upgrade-item.locked::after {
+            content: "🔒";
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 2.5em;
+            opacity: 0.3;
+        }
+
+        .upgrade-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .upgrade-icon {
+            font-size: 3.5em;
+            margin-right: 15px;
+            filter: grayscale(100%) brightness(0.5);
+            transition: all 0.3s;
+        }
+
+        .upgrade-item.unlocked .upgrade-icon {
+            filter: grayscale(0%) brightness(1);
+            animation: iconFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes iconFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .upgrade-info {
+            flex: 1;
+        }
+
+        .upgrade-name {
+            color: #ffd700;
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 6px;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+
+        .upgrade-description {
+            color: #b0b0b0;
+            font-size: 0.95em;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .upgrade-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+        }
+
+        .upgrade-cost {
+            color: #ffd700;
+            font-size: 1.2em;
+            font-weight: bold;
+            text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+        }
+
+        .upgrade-count {
+            background: rgba(255, 215, 0, 0.2);
+            padding: 6px 14px;
+            border-radius: 20px;
+            color: #ffd700;
+            font-weight: bold;
+            border: 1px solid rgba(255, 215, 0, 0.4);
+        }
+
+        .upgrade-production {
+            color: #90ee90;
+            font-size: 0.95em;
+            margin-top: 8px;
+            text-shadow: 0 0 8px rgba(144, 238, 144, 0.3);
+        }
+
+        .unlock-requirement {
+            color: #ff6b6b;
+            font-size: 0.9em;
+            font-style: italic;
+            margin-top: 6px;
+        }
+
+        .click-effect {
+            position: fixed;
+            color: #ffd700;
+            font-size: 3em;
+            font-weight: bold;
+            pointer-events: none;
+            animation: floatUp 1.2s ease-out forwards;
+            text-shadow: 
+                2px 2px 4px rgba(0, 0, 0, 0.8),
+                0 0 20px rgba(255, 215, 0, 0.8);
+            z-index: 9999;
+        }
+
+        @keyframes floatUp {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-150px) scale(1.5);
+            }
+        }
+
+        .achievement-popup {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(145deg, #2d1810, #1a0f0f);
+            border: 3px solid #ffd700;
+            border-radius: 12px;
+            padding: 20px;
+            z-index: 10000;
+            transform: translateX(500px);
+            transition: transform 0.5s;
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.6);
+            min-width: 300px;
+        }
+
+        .achievement-popup.show {
+            transform: translateX(0);
+        }
+
+        .achievement-popup-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .achievement-popup-icon {
+            font-size: 3em;
+            margin-right: 15px;
+        }
+
+        .achievement-title {
+            color: #ffd700;
+            font-size: 1.5em;
+            margin-bottom: 5px;
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+        }
+
+        @media (max-width: 900px) {
+            .game-wrapper {
+                flex-direction: column;
+            }
+            .right-panel {
+                width: 100%;
+                max-height: 50vh;
+            }
+            h1 {
+                font-size: 2.5em;
+            }
+            .dice-button {
+                width: 220px;
+                height: 220px;
+                font-size: 7em;
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1410;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #8b6914;
+            border-radius: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ffd700;
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+
+    <div class="top-buttons">
+        <button class="achievements-btn" onclick="openAchievements()">
+            🏆
+            <span class="notification-badge" id="achievementBadge">0</span>
+        </button>
+        <button class="settings-btn" onclick="openSettings()">⚙️</button>
+    </div>
+
+    <div class="modal" id="achievementsModal">
+        <div class="modal-content">
+            <div class="modal-header">🏆 Conquistas</div>
+            <div class="achievement-grid" id="achievementGrid"></div>
+            <button class="close-modal" onclick="closeAchievements()">Fechar</button>
+        </div>
+    </div>
+
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">⚙️ Configurações</div>
+            
+            <div class="modal-section">
+                <h3>🎨 Visual</h3>
+                <div class="setting-item">
+                    <span class="setting-label">Partículas de Fundo</span>
+                    <div class="toggle-switch active" id="particlesToggle" onclick="toggleParticles()">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">Efeitos de Clique</span>
+                    <div class="toggle-switch active" id="clickEffectsToggle" onclick="toggleClickEffects()">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">Sons</span>
+                    <div class="toggle-switch active" id="soundsToggle" onclick="toggleSounds()">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-section">
+                <h3>🎮 Gameplay</h3>
+                <div class="setting-item">
+                    <span class="setting-label">Notificações de Conquistas</span>
+                    <div class="toggle-switch active" id="achievementsToggle" onclick="toggleAchievementNotifications()">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">Auto-Save</span>
+                    <div class="toggle-switch active" id="autosaveToggle" onclick="toggleAutosave()">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-section">
+                <h3>🎵 Personalização de Sons</h3>
+                <div class="file-upload-section">
+                    <p style="color: #a0a0a0; margin-bottom: 15px;">Faça upload de seus próprios efeitos sonoros!</p>
+                    <input type="file" id="clickSoundInput" accept="audio/*" style="display: none;" onchange="uploadSound('click')">
+                    <input type="file" id="upgradeSoundInput" accept="audio/*" style="display: none;" onchange="uploadSound('upgrade')">
+                    <input type="file" id="achievementSoundInput" accept="audio/*" style="display: none;" onchange="uploadSound('achievement')">
+                    <button class="file-upload-btn" onclick="document.getElementById('clickSoundInput').click()">🎵 Som de Clique</button>
+                    <button class="file-upload-btn" onclick="document.getElementById('upgradeSoundInput').click()">🎵 Som de Upgrade</button>
+                    <button class="file-upload-btn" onclick="document.getElementById('achievementSoundInput').click()">🎵 Som de Conquista</button>
+                    <div class="file-list" id="soundFileList"></div>
+                </div>
+            </div>
+
+            <div class="modal-section">
+                <h3>💾 Dados</h3>
+                <div class="setting-item">
+                    <button class="close-modal" onclick="saveGame()" style="margin: 0; background: linear-gradient(145deg, #228b22, #32cd32);">
+                        💾 Salvar Jogo
+                    </button>
+                </div>
+                <div class="setting-item">
+                    <button class="close-modal" onclick="loadGame()" style="margin: 0; background: linear-gradient(145deg, #4169e1, #1e90ff);">
+                        📂 Carregar Jogo
+                    </button>
+                </div>
+                <div class="setting-item">
+                    <button class="close-modal" onclick="resetGame()" style="margin: 0;">
+                        🔄 Resetar Jogo
+                    </button>
+                </div>
+            </div>
+
+            <button class="close-modal" onclick="closeSettings()">Fechar</button>
+        </div>
+    </div>
+
+    <div class="game-wrapper">
+        <div class="left-panel">
+            <div class="background-pattern"></div>
+            
+            <div class="header">
+                <h1>⚔️ D&D CLICKER ⚔️</h1>
+            </div>
+
+            <div class="xp-display">
+                <div class="xp-label">Pontos de Experiência</div>
+                <div class="xp-value" id="goldDisplay">0</div>
+                <div class="xp-per-second">⚡ <span id="perSecondDisplay">0</span> XP/s</div>
+            </div>
+
+            <div class="dice-container">
+                <button class="dice-button" id="diceButton">🎲</button>
+                <div class="per-click">⚔️ <span id="perClickDisplay">1</span> por clique</div>
+            </div>
+
+            <div class="bonus-section">
+                <div class="bonus-title">🎲 Dado de Bônus (D20)</div>
+                <div class="dice-result" id="diceResult">?</div>
+                <button class="roll-button" id="rollButton">Rolar D20</button>
+                <div class="roll-info" id="rollInfo">
+                    Role para ganhar bônus temporário!<br>
+                    1-5: +10% | 6-10: +25% | 11-15: +50%<br>
+                    16-19: +100% | 20: <span style="color: #ffd700;">⭐ CRÍTICO +500% ⭐</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="store-header">
+                <div class="store-title">🏪 Loja de Melhorias</div>
+                <div class="total-per-second">
+                    ✨ Produzindo <span id="totalProduction">0</span> XP/s
+                </div>
+            </div>
+            <div class="upgrades-list" id="upgradesList"></div>
+        </div>
+    </div>
+
+    <script>
+        let gold = 0;
+        let totalGoldEarned = 0;
+        let clickPower = 1;
+        let passiveIncome = 0;
+        let diceBonus = 0;
+        let bonusEndTime = 0;
+        let rollCooldown = 0;
+        let totalClicks = 0;
+        let totalUpgrades = 0;
+        let criticalRolls = 0;
+
+        let settings = {
+            particles: true,
+            clickEffects: true,
+            achievementNotifications: true,
+            autosave: true,
+            sounds: true
+        };
+
+        let customSounds = {
+            click: null,
+            upgrade: null,
+            achievement: null
+        };
+
+        let achievements = [
+            { 
+                id: 'first_click', 
+                icon: '👆',
+                name: 'Primeiro Passo', 
+                desc: 'Faça seu primeiro clique', 
+                achieved: false, 
+                check: () => totalClicks >= 1,
+                progress: () => Math.min(totalClicks, 1),
+                max: 1
+            },
+            { 
+                id: 'clicks_100', 
+                icon: '⚔️',
+                name: 'Aventureiro', 
+                desc: 'Faça 100 cliques', 
+                achieved: false, 
+                check: () => totalClicks >= 100,
+                progress: () => Math.min(totalClicks, 100),
+                max: 100
+            },
+            { 
+                id: 'clicks_1000', 
+                icon: '🗡️',
+                name: 'Veterano', 
+                desc: 'Faça 1000 cliques', 
+                achieved: false, 
+                check: () => totalClicks >= 1000,
+                progress: () => Math.min(totalClicks, 1000),
+                max: 1000
+            },
+            { 
+                id: 'gold_1k', 
+                icon: '💰',
+                name: 'Rico', 
+                desc: 'Acumule 1.000 XP', 
+                achieved: false, 
+                check: () => totalGoldEarned >= 1000,
+                progress: () => Math.min(totalGoldEarned, 1000),
+                max: 1000
+            },
+            { 
+                id: 'gold_100k', 
+                icon: '💎',
+                name: 'Magnata', 
+                desc: 'Acumule 100.000 XP', 
+                achieved: false, 
+                check: () => totalGoldEarned >= 100000,
+                progress: () => Math.min(totalGoldEarned, 100000),
+                max: 100000
+            },
+            { 
+                id: 'gold_1m', 
+                icon: '👑',
+                name: 'Lendário', 
+                desc: 'Acumule 1.000.000 XP', 
+                achieved: false, 
+                check: () => totalGoldEarned >= 1000000,
+                progress: () => Math.min(totalGoldEarned, 1000000),
+                max: 1000000
+            },
+            { 
+                id: 'critical', 
+                icon: '🎲',
+                name: 'Sorte Crítica', 
+                desc: 'Role um 20 no D20', 
+                achieved: false, 
+                check: () => criticalRolls >= 1,
+                progress: () => Math.min(criticalRolls, 1),
+                max: 1
+            },
+            { 
+                id: 'critical_10', 
+                icon: '🍀',
+                name: 'Abençoado', 
+                desc: 'Role 10 críticos no D20', 
+                achieved: false, 
+                check: () => criticalRolls >= 10,
+                progress: () => Math.min(criticalRolls, 10),
+                max: 10
+            },
+            { 
+                id: 'upgrades_5', 
+                icon: '🛒',
+                name: 'Colecionador', 
+                desc: 'Compre 5 upgrades', 
+                achieved: false, 
+                check: () => totalUpgrades >= 5,
+                progress: () => Math.min(totalUpgrades, 5),
+                max: 5
+            },
+            { 
+                id: 'upgrades_50', 
+                icon: '🏰',
+                name: 'Construtor de Império', 
+                desc: 'Compre 50 upgrades', 
+                achieved: false, 
+                check: () => totalUpgrades >= 50,
+                progress: () => Math.min(totalUpgrades, 50),
+                max: 50
+            },
+            { 
+                id: 'passive_100', 
+                icon: '⚡',
+                name: 'Automação', 
+                desc: 'Atinja 100 XP/s passivo', 
+                achieved: false, 
+                check: () => passiveIncome >= 100,
+                progress: () => Math.min(passiveIncome, 100),
+                max: 100
+            },
+            { 
+                id: 'click_power_100', 
+                icon: '💪',
+                name: 'Força Suprema', 
+                desc: 'Atinja 100 XP por clique', 
+                achieved: false, 
+                check: () => clickPower >= 100,
+                progress: () => Math.min(clickPower, 100),
+                max: 100
+            }
+        ];
+
+        const upgrades = [
+            {
+                id: 'sword',
+                name: "Espada Curta",
+                icon: "🗡️",
+                description: "Uma espada básica para iniciantes",
+                baseCost: 15,
+                count: 0,
+                clickBonus: 1,
+                passiveBonus: 0,
+                unlockAt: 0
+            },
+            {
+                id: 'apprentice',
+                name: "Aprendiz de Mago",
+                icon: "🧙‍♂️",
+                description: "Gera XP automaticamente enquanto você aventura",
+                baseCost: 100,
+                count: 0,
+                clickBonus: 0,
+                passiveBonus: 1,
+                unlockAt: 50
+            },
+            {
+                id: 'longsword',
+                name: "Espada Longa",
+                icon: "⚔️",
+                description: "Uma arma mais poderosa para guerreiros experientes",
+                baseCost: 500,
+                count: 0,
+                clickBonus: 5,
+                passiveBonus: 0,
+                unlockAt: 250
+            },
+            {
+                id: 'archer',
+                name: "Arqueiro Élfico",
+                icon: "🏹",
+                description: "Ataca inimigos à distância constantemente",
+                baseCost: 1200,
+                count: 0,
+                clickBonus: 0,
+                passiveBonus: 5,
+                unlockAt: 800
+            },
+            {
+                id: 'cleric',
+                name: "Clérigo Devoto",
+                icon: "⚕️",
+                description: "Cura e abençoa a party continuamente",
+                baseCost: 3000,
+                count: 0,
+                clickBonus: 0,
+                passiveBonus: 12,
+                unlockAt: 2000
+            },
+            {
+                id: 'paladin',
+                name: "Paladino Sagrado",
+                icon: "🛡️",
+                description: "Defende o grupo com poder divino",
+                baseCost: 7500,
+                count: 0,
+                clickBonus: 0,
+                passiveBonus: 30,
+                unlockAt: 5000
+            },
+            {
+                id: 'staff',
+                name: "Cajado Místico",
+                icon: "🔮",
+                description: "Amplifica tremendamente seu poder mágico",
+                baseCost: 15000,
+                count: 0,
+                clickBonus: 50,
+                passiveBonus: 0,
+                unlockAt: 10000
+            },
+            {
+                id: 'wizard',
+                name: "Arquimago Sábio",
+                icon: "🧙",
+                description: "Mestre das artes arcanas",
+                baseCost: 30000,
+                count: 0,
+                clickBonus: 0,
+                passiveBonus: 80,
+                unlockAt: 20000
+            },
+            {
+                id: 'dragon',
+                name: "Dragão Ancestral",
+                icon: "🐉",
+                description: "Um dragão lendário empresta seu poder",
+                baseCost: 75000,
+                count: 0,
+                clickBonus: 0,
+                passiveBonus: 200,
+                unlockAt: 50000
+            },
+            {
+                id: 'artifact',
+                name: "Artefato Lendário",
+                icon: "👑",
+                description: "Um item de poder incomensurável",
+                baseCost: 150000,
+                count: 0,
+                clickBonus: 250,
+                passiveBonus: 0,
+                unlockAt: 100000
+            },
+            {
+                id: 'lich',
+                name: "Lich Ancestral",
+                icon: "💀",
+                description: "Um mago imortal que comanda legiões",
+                baseCost: 300000,
+                count: 0,
+                clickBonus: 0,
+                passiveBonus: 500,
+                unlockAt: 200000
+            },
+            {
+                id: 'deity',
+                name: "Avatar Divino",
+                icon: "✨",
+                description: "O poder dos próprios deuses",
+                baseCost: 1000000,
+                count: 0,
+                clickBonus: 1000,
+                passiveBonus: 1000,
+                unlockAt: 500000
+            }
+        ];
+
+        function createDefaultSounds() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            function playBeep(frequency, duration) {
+                if (!settings.sounds) return;
+                try {
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.value = frequency;
+                    oscillator.type = 'sine';
+                    
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + duration);
+                } catch (e) {
+                    console.log('Erro ao tocar som:', e);
+                }
+            }
+            
+            return {
+                playClick: () => playBeep(800, 0.1),
+                playUpgrade: () => {
+                    playBeep(600, 0.15);
+                    setTimeout(() => playBeep(800, 0.15), 100);
+                },
+                playAchievement: () => {
+                    playBeep(600, 0.2);
+                    setTimeout(() => playBeep(800, 0.2), 150);
+                    setTimeout(() => playBeep(1000, 0.3), 300);
+                }
+            };
+        }
+
+        const defaultSounds = createDefaultSounds();
+
+        function playSound(type) {
+            if (!settings.sounds) return;
+            
+            if (customSounds[type]) {
+                customSounds[type].currentTime = 0;
+                customSounds[type].play().catch(e => console.log('Erro ao tocar som:', e));
+            } else {
+                if (type === 'click') defaultSounds.playClick();
+                else if (type === 'upgrade') defaultSounds.playUpgrade();
+                else if (type === 'achievement') defaultSounds.playAchievement();
+            }
+        }
+
+        function uploadSound(type) {
+            const input = document.getElementById(type + 'SoundInput');
+            const file = input.files[0];
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const audio = new Audio(e.target.result);
+                    customSounds[type] = audio;
+                    updateSoundFileList();
+                    showAchievement('🎵 Som Personalizado', `Som de ${type === 'click' ? 'clique' : type === 'upgrade' ? 'upgrade' : 'conquista'} atualizado!`);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function updateSoundFileList() {
+            const list = document.getElementById('soundFileList');
+            list.innerHTML = '';
+            
+            Object.keys(customSounds).forEach(type => {
+                if (customSounds[type]) {
+                    const item = document.createElement('div');
+                    item.className = 'file-item';
+                    item.innerHTML = `
+                        <span class="file-item-name">🎵 ${type === 'click' ? 'Clique' : type === 'upgrade' ? 'Upgrade' : 'Conquista'}</span>
+                        <button class="file-item-remove" onclick="removeSound('${type}')">Remover</button>
+                    `;
+                    list.appendChild(item);
+                }
+            });
+        }
+
+        function removeSound(type) {
+            customSounds[type] = null;
+            updateSoundFileList();
+        }
+
+        function openAchievements() {
+            document.getElementById('achievementsModal').classList.add('active');
+            renderAchievements();
+            updateAchievementBadge();
+        }
+
+        function closeAchievements() {
+            document.getElementById('achievementsModal').classList.remove('active');
+        }
+
+        function renderAchievements() {
+            const grid = document.getElementById('achievementGrid');
+            grid.innerHTML = '';
+            
+            achievements.forEach(ach => {
+                const card = document.createElement('div');
+                card.className = `achievement-card ${ach.achieved ? 'achieved' : 'locked'}`;
+                
+                const progressPercent = (ach.progress() / ach.max * 100).toFixed(0);
+                
+                card.innerHTML = `
+                    <div class="achievement-icon">${ach.icon}</div>
+                    <div class="achievement-name">${ach.name}</div>
+                    <div class="achievement-desc">${ach.desc}</div>
+                    ${!ach.achieved ? `
+                        <div class="achievement-progress">
+                            <div class="achievement-progress-bar" style="width: ${progressPercent}%">
+                                ${progressPercent}%
+                            </div>
+                        </div>
+                    ` : ''}
+                `;
+                
+                grid.appendChild(card);
+            });
+        }
+
+        function updateAchievementBadge() {
+            const newAchievements = achievements.filter(a => !a.achieved && a.check()).length;
+            const badge = document.getElementById('achievementBadge');
+            if (newAchievements > 0) {
+                badge.textContent = newAchievements;
+                badge.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        function checkAchievements() {
+            achievements.forEach(ach => {
+                if (!ach.achieved && ach.check()) {
+                    ach.achieved = true;
+                    playSound('achievement');
+                    if (settings.achievementNotifications) {
+                        showAchievement(ach.icon + ' ' + ach.name, ach.desc);
+                    }
+                    updateAchievementBadge();
+                }
+            });
+        }
+
+        function showAchievement(title, desc) {
+            const popup = document.createElement('div');
+            popup.className = 'achievement-popup';
+            popup.innerHTML = `
+                <div class="achievement-popup-header">
+                    <div class="achievement-popup-icon">${title.split(' ')[0]}</div>
+                    <div>
+                        <div class="achievement-title">${title.substring(title.indexOf(' ') + 1)}</div>
+                        <div class="achievement-desc">${desc}</div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(popup);
+            setTimeout(() => popup.classList.add('show'), 100);
+            setTimeout(() => {
+                popup.classList.remove('show');
+                setTimeout(() => popup.remove(), 500);
+            }, 4000);
+        }
+
+        function openSettings() {
+            document.getElementById('settingsModal').classList.add('active');
+            updateSoundFileList();
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+
+        function toggleParticles() {
+            settings.particles = !settings.particles;
+            document.getElementById('particlesToggle').classList.toggle('active');
+            document.getElementById('particles').style.display = settings.particles ? 'block' : 'none';
+        }
+
+        function toggleClickEffects() {
+            settings.clickEffects = !settings.clickEffects;
+            document.getElementById('clickEffectsToggle').classList.toggle('active');
+        }
+
+        function toggleSounds() {
+            settings.sounds = !settings.sounds;
+            document.getElementById('soundsToggle').classList.toggle('active');
+        }
+
+        function toggleAchievementNotifications() {
+            settings.achievementNotifications = !settings.achievementNotifications;
+            document.getElementById('achievementsToggle').classList.toggle('active');
+        }
+
+        function toggleAutosave() {
+            settings.autosave = !settings.autosave;
+            document.getElementById('autosaveToggle').classList.toggle('active');
+        }
+
+        function createParticles() {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 30; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.width = Math.random() * 4 + 2 + 'px';
+                particle.style.height = particle.style.width;
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                particle.style.animationDuration = (Math.random() * 10 + 15) + 's';
+                container.appendChild(particle);
+            }
+        }
+
+        function saveGame() {
+            const saveData = {
+                gold, totalGoldEarned, clickPower, passiveIncome, totalClicks, totalUpgrades, criticalRolls,
+                upgrades: upgrades.map(u => ({ id: u.id, count: u.count })),
+                achievements: achievements.map(a => ({ id: a.id, achieved: a.achieved })),
+                settings
+            };
+            try {
+                localStorage.setItem('dndClickerSave', JSON.stringify(saveData));
+                showAchievement('💾 Jogo Salvo', 'Seu progresso foi salvo com sucesso!');
+            } catch (e) {
+                console.error('Erro ao salvar:', e);
+            }
+        }
+
+        function loadGame() {
+            try {
+                const saveData = localStorage.getItem('dndClickerSave');
+                if (saveData) {
+                    const data = JSON.parse(saveData);
+                    gold = data.gold || 0;
+                    totalGoldEarned = data.totalGoldEarned || 0;
+                    clickPower = data.clickPower || 1;
+                    passiveIncome = data.passiveIncome || 0;
+                    totalClicks = data.totalClicks || 0;
+                    totalUpgrades = data.totalUpgrades || 0;
+                    criticalRolls = data.criticalRolls || 0;
+                    
+                    if (data.upgrades) {
+                        data.upgrades.forEach(savedUpgrade => {
+                            const upgrade = upgrades.find(u => u.id === savedUpgrade.id);
+                            if (upgrade) upgrade.count = savedUpgrade.count;
+                        });
+                    }
+                    
+                    if (data.achievements) {
+                        data.achievements.forEach(savedAch => {
+                            const ach = achievements.find(a => a.id === savedAch.id);
+                            if (ach) ach.achieved = savedAch.achieved;
+                        });
+                    }
+                    
+                    if (data.settings) {
+                        Object.assign(settings, data.settings);
+                        updateSettingsUI();
+                    }
+                    
+                    updateDisplay();
+                    renderUpgrades();
+                    updateAchievementBadge();
+                    showAchievement('📂 Jogo Carregado', 'Seu progresso foi restaurado!');
+                }
+            } catch (e) {
+                console.error('Erro ao carregar:', e);
+            }
+        }
+
+        function updateSettingsUI() {
+            document.getElementById('particlesToggle').classList.toggle('active', settings.particles);
+            document.getElementById('clickEffectsToggle').classList.toggle('active', settings.clickEffects);
+            document.getElementById('soundsToggle').classList.toggle('active', settings.sounds);
+            document.getElementById('achievementsToggle').classList.toggle('active', settings.achievementNotifications);
+            document.getElementById('autosaveToggle').classList.toggle('active', settings.autosave);
+            document.getElementById('particles').style.display = settings.particles ? 'block' : 'none';
+        }
+
+        function resetGame() {
+            if (confirm('Tem certeza que deseja resetar todo o progresso?')) {
+                localStorage.removeItem('dndClickerSave');
+                location.reload();
+            }
+        }
+
+        function getCost(upgrade) {
+            return Math.floor(upgrade.baseCost * Math.pow(1.15, upgrade.count));
+        }
+
+        function isUnlocked(upgrade) {
+            return totalGoldEarned >= upgrade.unlockAt;
+        }
+
+        function formatNumber(num) {
+            if (num >= 1000000000) return (num / 1000000000).toFixed(2) + 'B';
+            if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+            return Math.floor(num).toString();
+        }
+
+        function updateDisplay() {
+            document.getElementById('goldDisplay').textContent = formatNumber(gold);
+            document.getElementById('perClickDisplay').textContent = formatNumber(clickPower);
+            document.getElementById('perSecondDisplay').textContent = passiveIncome.toFixed(1);
+            document.getElementById('totalProduction').textContent = passiveIncome.toFixed(1);
+        }
+
+        function showClickEffect(value) {
+            if (!settings.clickEffects) return;
+            const button = document.getElementById('diceButton');
+            const rect = button.getBoundingClientRect();
+            const effect = document.createElement('div');
+            effect.className = 'click-effect';
+            effect.textContent = `+${formatNumber(value)}`;
+            effect.style.left = (rect.left + rect.width / 2 + (Math.random() - 0.5) * 100) + 'px';
+            effect.style.top = (rect.top + rect.height / 2 + (Math.random() - 0.5) * 100) + 'px';
+            document.body.appendChild(effect);
+            setTimeout(() => effect.remove(), 1200);
+        }
+
+        function handleClick() {
+            const totalPower = Math.floor(clickPower * (1 + diceBonus));
+            gold += totalPower;
+            totalGoldEarned += totalPower;
+            totalClicks++;
+            playSound('click');
+            showClickEffect(totalPower);
+            updateDisplay();
+            renderUpgrades();
+            checkAchievements();
+        }
+
+        function rollDice() {
+            if (rollCooldown > 0) return;
+
+            const button = document.getElementById('diceButton');
+            button.classList.add('dice-rolling');
+            
+            setTimeout(() => {
+                button.classList.remove('dice-rolling');
+                const roll = Math.floor(Math.random() * 20) + 1;
+                const resultDiv = document.getElementById('diceResult');
+                
+                let bonus = 0;
+                let duration = 30000;
+                let message = '';
+                
+                if (roll === 20) {
+                    bonus = 5;
+                    message = '🌟 CRÍTICO! +500% XP! 🌟';
+                    resultDiv.className = 'dice-result critical';
+                    criticalRolls++;
+                    playSound('achievement');
+                    checkAchievements();
+                } else if (roll >= 16) {
+                    bonus = 1;
+                    message = '⚡ Excelente! +100% XP!';
+                    resultDiv.className = 'dice-result';
+                    playSound('upgrade');
+                } else if (roll >= 11) {
+                    bonus = 0.5;
+                    message = '✨ Ótimo! +50% XP!';
+                    resultDiv.className = 'dice-result';
+                    playSound('upgrade');
+                } else if (roll >= 6) {
+                    bonus = 0.25;
+                    message = '👍 Bom! +25% XP!';
+                    resultDiv.className = 'dice-result';
+                    playSound('click');
+                } else {
+                    bonus = 0.1;
+                    message = '🎲 +10% XP';
+                    resultDiv.className = 'dice-result';
+                    playSound('click');
+                }
+                
+                diceBonus = bonus;
+                bonusEndTime = Date.now() + duration;
+                resultDiv.textContent = roll;
+                
+                document.getElementById('rollInfo').innerHTML = `
+                    ${message}<br>
+                    Bônus ativo por 30 segundos!
+                `;
+                
+                rollCooldown = 60;
+                updateRollButton();
+            }, 600);
+        }
+
+        function updateRollButton() {
+            const button = document.getElementById('rollButton');
+            if (rollCooldown > 0) {
+                button.disabled = true;
+                button.textContent = `Aguarde ${Math.ceil(rollCooldown)}s`;
+            } else {
+                button.disabled = false;
+                button.textContent = 'Rolar D20';
+            }
+        }
+
+        function buyUpgrade(upgrade) {
+            const cost = getCost(upgrade);
+            if (!isUnlocked(upgrade)) return;
+            if (gold >= cost) {
+                gold -= cost;
+                upgrade.count++;
+                totalUpgrades++;
+                clickPower += upgrade.clickBonus;
+                passiveIncome += upgrade.passiveBonus;
+                playSound('upgrade');
+                updateDisplay();
+                renderUpgrades();
+                checkAchievements();
+            }
+        }
+
+        function renderUpgrades() {
+            const container = document.getElementById('upgradesList');
+            container.innerHTML = '';
+            
+            upgrades.forEach(upgrade => {
+                const cost = getCost(upgrade);
+                const unlocked = isUnlocked(upgrade);
+                const affordable = gold >= cost && unlocked;
+                
+                const div = document.createElement('div');
+                div.className = `upgrade-item ${unlocked ? 'unlocked' : 'locked'} ${affordable ? 'affordable' : ''}`;
+                
+                if (unlocked) {
+                    div.onclick = () => buyUpgrade(upgrade);
+                }
+                
+                const totalClick = upgrade.clickBonus * upgrade.count;
+                const totalPassive = upgrade.passiveBonus * upgrade.count;
+                
+                div.innerHTML = `
+                    <div class="upgrade-header">
+                        <div class="upgrade-icon">${upgrade.icon}</div>
+                        <div class="upgrade-info">
+                            <div class="upgrade-name">${upgrade.name}</div>
+                            <div class="upgrade-description">${upgrade.description}</div>
+                            ${!unlocked ? `<div class="unlock-requirement">🔒 Desbloqueado com ${formatNumber(upgrade.unlockAt)} XP total</div>` : ''}
+                        </div>
+                    </div>
+                    <div class="upgrade-stats">
+                        <div class="upgrade-cost">💰 ${formatNumber(cost)} XP</div>
+                        <div class="upgrade-count">Quantidade: ${upgrade.count}</div>
+                    </div>
+                    ${unlocked && (totalClick > 0 || totalPassive > 0) ? `
+                        <div class="upgrade-production">
+                            ${totalClick > 0 ? `⚔️ +${formatNumber(totalClick)} por clique` : ''}
+                            ${totalPassive > 0 ? `⚡ +${formatNumber(totalPassive)} XP/s` : ''}
+                        </div>
+                    ` : ''}
+                `;
+                
+                container.appendChild(div);
+            });
+        }
+
+        let lastUpdate = Date.now();
+        
+        function gameLoop() {
+            const now = Date.now();
+            const deltaTime = (now - lastUpdate) / 1000;
+            lastUpdate = now;
+            
+            if (passiveIncome > 0) {
+                const earned = passiveIncome * deltaTime;
+                gold += earned;
+                totalGoldEarned += earned;
+            }
+            
+            if (bonusEndTime > 0 && now >= bonusEndTime) {
+                diceBonus = 0;
+                bonusEndTime = 0;
+                document.getElementById('diceResult').textContent = '?';
+                document.getElementById('rollInfo').innerHTML = `
+                    Role para ganhar bônus temporário!<br>
+                    1-5: +10% | 6-10: +25% | 11-15: +50%<br>
+                    16-19: +100% | 20: <span style="color: #ffd700;">⭐ CRÍTICO +500% ⭐</span>
+                `;
+            }
+            
+            if (rollCooldown > 0) {
+                rollCooldown = Math.max(0, rollCooldown - deltaTime);
+                updateRollButton();
+            }
+            
+            updateDisplay();
+            checkAchievements();
+            
+            requestAnimationFrame(gameLoop);
+        }
+
+        setInterval(() => {
+            if (settings.autosave) {
+                saveGame();
+            }
+        }, 60000);
+
+        document.getElementById('diceButton').addEventListener('click', handleClick);
+        document.getElementById('rollButton').addEventListener('click', rollDice);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeSettings();
+                closeAchievements();
+            }
+        });
+
+        createParticles();
+        renderUpgrades();
+        renderAchievements();
+        updateDisplay();
+        loadGame();
+        gameLoop();
+
+        document.getElementById('diceButton').addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
+
+        console.log('🎲 D&D Adventure Clicker iniciado!');
+        console.log('⚔️ Boa aventura, herói!');
+    </script>
+</body>
+</html>
