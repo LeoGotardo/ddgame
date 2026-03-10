@@ -4,11 +4,10 @@
 
 import { useGame } from '@/contexts/GameContext';
 import { useSoundManager } from '@/hooks/useSoundManager';
-import { calculateDiceRollBonus } from '@/utils/gameCalculations';
 import { useState, useEffect } from 'react';
 
 export default function DiceRoller() {
-  const { gameState, rollDice, updateGameState } = useGame();
+  const { gameState, rollDice } = useGame();
   const { playSound } = useSoundManager();
   const [diceResult, setDiceResult] = useState<number | null>(null);
   const [rollMessage, setRollMessage] = useState('');
@@ -22,18 +21,13 @@ export default function DiceRoller() {
 
     setTimeout(() => {
       setIsRolling(false);
-      const roll = Math.floor(Math.random() * 20) + 1;
-      const bonusData = calculateDiceRollBonus(roll);
+      const { roll, bonusData } = rollDice();
+      
+      if (!bonusData) return;
 
       setDiceResult(roll);
       setDiceClassName(bonusData.className);
       setRollMessage(`${bonusData.message}<br>Bônus ativo por 30 segundos!`);
-
-      updateGameState({
-        diceBonus: bonusData.bonus,
-        bonusEndTime: Date.now() + bonusData.duration,
-        rollCooldown: 60,
-      });
 
       if (roll === 20) {
         playSound('achievement');
@@ -41,8 +35,6 @@ export default function DiceRoller() {
         playSound('upgrade');
       }
     }, 600);
-
-    rollDice();
   };
 
   useEffect(() => {

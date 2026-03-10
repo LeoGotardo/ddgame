@@ -9,6 +9,7 @@ import type { Achievement } from '@/types/achievement';
 import { UPGRADES_DATA } from '@/types/upgrade';
 import { ACHIEVEMENTS_DATA } from '@/types/achievement';
 import { saveGame, loadGame, deleteSave } from '@/utils/storageManager';
+import { calculateDiceRollBonus } from '@/utils/gameCalculations';
 
 interface GameContextType {
   // Game State
@@ -20,7 +21,7 @@ interface GameContextType {
 
   // Game Actions
   handleClick: () => void;
-  rollDice: () => void;
+  rollDice: () => { roll: number; bonusData: any };
   buyUpgrade: (upgrade: Upgrade) => void;
   toggleSetting: (key: keyof Settings) => void;
   uploadSound: (type: 'click' | 'upgrade' | 'achievement', file: File) => void;
@@ -95,30 +96,23 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, [gameState.clickPower, gameState.diceBonus, gameState.gold, gameState.totalGoldEarned, gameState.totalClicks, updateGameState]);
 
   const rollDice = useCallback(() => {
-    if (gameState.rollCooldown > 0) return;
+    if (gameState.rollCooldown > 0) return { roll: 0, bonusData: null };
 
     const roll = Math.floor(Math.random() * 20) + 1;
-    let bonus = 0;
-    let duration = 30000;
+    const bonusData = calculateDiceRollBonus(roll);
+
+    const updates: Partial<GameState> = {
+      diceBonus: bonusData.bonus,
+      bonusEndTime: Date.now() + bonusData.duration,
+      rollCooldown: 60,
+    };
 
     if (roll === 20) {
-      bonus = 5;
-      updateGameState({ criticalRolls: gameState.criticalRolls + 1 });
-    } else if (roll >= 16) {
-      bonus = 1;
-    } else if (roll >= 11) {
-      bonus = 0.5;
-    } else if (roll >= 6) {
-      bonus = 0.25;
-    } else {
-      bonus = 0.1;
+      updates.criticalRolls = gameState.criticalRolls + 1;
     }
 
-    updateGameState({
-      diceBonus: bonus,
-      bonusEndTime: Date.now() + duration,
-      rollCooldown: 60,
-    });
+    updateGameState(updates);
+    return { roll, bonusData };
   }, [gameState.rollCooldown, gameState.criticalRolls, updateGameState]);
 
   const buyUpgrade = useCallback((upgrade: Upgrade) => {

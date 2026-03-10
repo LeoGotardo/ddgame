@@ -9,6 +9,7 @@ export function useAchievements() {
   const { gameState, achievements, updateAchievements } = useGame();
 
   const checkAchievements = useCallback(() => {
+    let hasChanges = false;
     const updatedAchievements = achievements.map(achievement => {
       if (achievement.achieved) return achievement;
 
@@ -53,10 +54,16 @@ export function useAchievements() {
           break;
       }
 
-      return { ...achievement, achieved };
+      if (achieved) {
+        hasChanges = true;
+        return { ...achievement, achieved: true };
+      }
+      return achievement;
     });
 
-    updateAchievements(updatedAchievements);
+    if (hasChanges) {
+      updateAchievements(updatedAchievements);
+    }
   }, [gameState, achievements, updateAchievements]);
 
   useEffect(() => {
