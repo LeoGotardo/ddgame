@@ -52,9 +52,9 @@ export class SoundGenerator {
     setTimeout(() => this.playBeep(1000, 0.3), 300);
   }
 
-  playCustom(audio: HTMLAudioElement): void {
+  playCustom(dataUrl: string): void {
     try {
-      audio.currentTime = 0;
+      const audio = new Audio(dataUrl);
       audio.play().catch(e => console.log('Erro ao tocar som:', e));
     } catch (e) {
       console.log('Erro ao tocar som customizado:', e);

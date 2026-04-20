@@ -2,18 +2,18 @@
  * Hook para gerenciar o loop do jogo
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useGame } from '@/contexts/GameContext';
 
 export function useGameLoop() {
   const { gameState, updateGameState } = useGame();
-  let lastUpdate = Date.now();
+  const lastUpdateRef = useRef(Date.now());
 
   useEffect(() => {
     const gameLoop = () => {
       const now = Date.now();
-      const deltaTime = (now - lastUpdate) / 1000;
-      lastUpdate = now;
+      const deltaTime = (now - lastUpdateRef.current) / 1000;
+      lastUpdateRef.current = now;
 
       // Passive income
       if (gameState.passiveIncome > 0) {

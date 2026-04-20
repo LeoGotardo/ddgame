@@ -24,9 +24,9 @@ export interface Settings {
 }
 
 export interface CustomSounds {
-  click: HTMLAudioElement | null;
-  upgrade: HTMLAudioElement | null;
-  achievement: HTMLAudioElement | null;
+  click: string | null;
+  upgrade: string | null;
+  achievement: string | null;
 }
 
 export interface SaveData {

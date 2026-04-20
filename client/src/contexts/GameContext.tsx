@@ -9,6 +9,8 @@ import type { Achievement } from '@/types/achievement';
 import { UPGRADES_DATA } from '@/types/upgrade';
 import { ACHIEVEMENTS_DATA } from '@/types/achievement';
 import { saveGame, loadGame, deleteSave } from '@/utils/storageManager';
+import { calculateDiceRollBonus } from '@/utils/gameCalculations';
+import type { DiceRollResult } from '@/types/game';
 
 interface GameContextType {
   // Game State
@@ -20,7 +22,7 @@ interface GameContextType {
 
   // Game Actions
   handleClick: () => void;
-  rollDice: () => void;
+  rollDice: () => DiceRollResult | null;
   buyUpgrade: (upgrade: Upgrade) => void;
   toggleSetting: (key: keyof Settings) => void;
   uploadSound: (type: 'click' | 'upgrade' | 'achievement', file: File) => void;
@@ -94,31 +96,20 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     });
   }, [gameState.clickPower, gameState.diceBonus, gameState.gold, gameState.totalGoldEarned, gameState.totalClicks, updateGameState]);
 
-  const rollDice = useCallback(() => {
-    if (gameState.rollCooldown > 0) return;
+  const rollDice = useCallback((): DiceRollResult | null => {
+    if (gameState.rollCooldown > 0) return null;
 
     const roll = Math.floor(Math.random() * 20) + 1;
-    let bonus = 0;
-    let duration = 30000;
-
-    if (roll === 20) {
-      bonus = 5;
-      updateGameState({ criticalRolls: gameState.criticalRolls + 1 });
-    } else if (roll >= 16) {
-      bonus = 1;
-    } else if (roll >= 11) {
-      bonus = 0.5;
-    } else if (roll >= 6) {
-      bonus = 0.25;
-    } else {
-      bonus = 0.1;
-    }
+    const bonusData = calculateDiceRollBonus(roll);
 
     updateGameState({
-      diceBonus: bonus,
-      bonusEndTime: Date.now() + duration,
+      diceBonus: bonusData.bonus,
+      bonusEndTime: Date.now() + bonusData.duration,
       rollCooldown: 60,
+      ...(roll === 20 ? { criticalRolls: gameState.criticalRolls + 1 } : {}),
     });
+
+    return { roll, ...bonusData };
   }, [gameState.rollCooldown, gameState.criticalRolls, updateGameState]);
 
   const buyUpgrade = useCallback((upgrade: Upgrade) => {
@@ -145,8 +136,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const uploadSound = useCallback((type: 'click' | 'upgrade' | 'achievement', file: File) => {
     const reader = new FileReader();
     reader.onload = function(e) {
-      const audio = new Audio(e.target?.result as string);
-      setCustomSounds(prev => ({ ...prev, [type]: audio }));
+      const dataUrl = e.target?.result as string;
+      setCustomSounds(prev => ({ ...prev, [type]: dataUrl }));
     };
     reader.readAsDataURL(file);
   }, []);
@@ -176,17 +167,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (data.upgrades) {
-        const updatedUpgrades = upgrades.map(upgrade => {
+        const updatedUpgrades = UPGRADES_DATA.map(upgrade => {
           const savedUpgrade = data.upgrades.find(u => u.id === upgrade.id);
-          return savedUpgrade ? { ...upgrade, count: savedUpgrade.count } : upgrade;
+          return savedUpgrade ? { ...upgrade, count: savedUpgrade.count } : { ...upgrade };
         });
         setUpgrades(updatedUpgrades);
       }
 
       if (data.achievements) {
-        const updatedAchievements = achievements.map(ach => {
+        const updatedAchievements = ACHIEVEMENTS_DATA.map(ach => {
           const savedAch = data.achievements.find(a => a.id === ach.id);
-          return savedAch ? { ...ach, achieved: savedAch.achieved } : ach;
+          return savedAch ? { ...ach, achieved: savedAch.achieved } : { ...ach, achieved: false };
         });
         setAchievements(updatedAchievements);
       }
@@ -195,7 +186,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         setSettings(data.settings);
       }
     }
-  }, [upgrades, achievements]);
+  }, []);
 
   const resetGameData = useCallback(() => {
     if (confirm('Tem certeza que deseja resetar todo o progresso?')) {

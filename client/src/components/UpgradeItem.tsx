@@ -58,8 +58,9 @@ export default function UpgradeItem({
       </div>
       {unlocked && (totalClick > 0 || totalPassive > 0) && (
         <div className="upgrade-production">
-          {totalClick > 0 && `⚔️ +${formatNumber(totalClick)} por clique`}
-          {totalPassive > 0 && `⚡ +${formatNumber(totalPassive)} XP/s`}
+          {totalClick > 0 && <span>⚔️ +{formatNumber(totalClick)} por clique</span>}
+          {totalClick > 0 && totalPassive > 0 && ' '}
+          {totalPassive > 0 && <span>⚡ +{formatNumber(totalPassive)} XP/s</span>}
         </div>
       )}
     </div>

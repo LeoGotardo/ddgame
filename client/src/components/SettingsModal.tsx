@@ -2,7 +2,7 @@
  * Modal para configurações do jogo
  */
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useGame } from '@/contexts/GameContext';
 import SettingToggle from './SettingToggle';
 
@@ -25,6 +25,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
   const clickSoundInputRef = useRef<HTMLInputElement>(null);
   const upgradeSoundInputRef = useRef<HTMLInputElement>(null);
   const achievementSoundInputRef = useRef<HTMLInputElement>(null);
+  const [uploadedTypes, setUploadedTypes] = useState<Set<string>>(new Set());
 
   const handleSoundUpload = (type: 'click' | 'upgrade' | 'achievement') => {
     const inputRef =
@@ -37,6 +38,8 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
     const file = inputRef.current?.files?.[0];
     if (file) {
       uploadSound(type, file);
+      setUploadedTypes(prev => new Set(prev).add(type));
+      setTimeout(() => setUploadedTypes(prev => { const s = new Set(prev); s.delete(type); return s; }), 2000);
     }
   };
 
@@ -112,19 +115,19 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
               className="file-upload-btn"
               onClick={() => clickSoundInputRef.current?.click()}
             >
-              🎵 Som de Clique
+              🎵 Som de Clique{uploadedTypes.has('click') && ' ✓'}
             </button>
             <button
               className="file-upload-btn"
               onClick={() => upgradeSoundInputRef.current?.click()}
             >
-              🎵 Som de Upgrade
+              🎵 Som de Upgrade{uploadedTypes.has('upgrade') && ' ✓'}
             </button>
             <button
               className="file-upload-btn"
               onClick={() => achievementSoundInputRef.current?.click()}
             >
-              🎵 Som de Conquista
+              🎵 Som de Conquista{uploadedTypes.has('achievement') && ' ✓'}
             </button>
             <div className="file-list">
               {customSounds.click && (

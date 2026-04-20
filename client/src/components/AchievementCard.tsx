@@ -10,7 +10,7 @@ interface AchievementCardProps {
 
 export default function AchievementCard({ achievement }: AchievementCardProps) {
   const progress = achievement.progress();
-  const progressPercent = (progress / achievement.max) * 100;
+  const progressPercent = achievement.max > 0 ? Math.min((progress / achievement.max) * 100, 100) : 0;
 
   return (
     <div className={`achievement-card ${achievement.achieved ? 'achieved' : 'locked'}`}>

@@ -15,7 +15,6 @@ export default function ParticleBackground() {
     const container = containerRef.current;
     container.innerHTML = '';
 
-    // Create particles
     for (let i = 0; i < 30; i++) {
       const particle = document.createElement('div');
       particle.className = 'particle';
@@ -27,6 +26,10 @@ export default function ParticleBackground() {
       particle.style.animationDuration = Math.random() * 10 + 15 + 's';
       container.appendChild(particle);
     }
+
+    return () => {
+      container.innerHTML = '';
+    };
   }, [settings.particles]);
 
   return (
